@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/c22quiambao/tinyapp/issues"
   },
-  "homepage": "https://github.com/c22quiambao/tinyapp#readme"
+  "homepage": "https://github.com/c22quiambao/tinyapp#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
 }
