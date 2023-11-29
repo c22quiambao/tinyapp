@@ -99,41 +99,33 @@ app.get("/urls/new", (req, res) => {
  */
 app.post("/urls", (req, res) => {
   console.log("info recieved from browser : ",req.body); // Log the POST request body to the console. The body sends back i.e: { longURL: 'google.com' }
-  const body = req.body; //stores info from the form
-  let longURL = body.longURL; //TO DO!!! add http:// as prefix if there isnt
+  const body = req.body; //stores request body response from the form
+
+  //check if the longURL has http:// included
+  let search1 = body.longURL.search("http://");
+  let search2 = body.longURL.search("https://");
+  console.log(search1);
+  console.log(search2);
+
+  let longURL = body.longURL;
+
+  if (search1 === -1 && search2 ===-1 ){
+    longURL = `https://${body.longURL}`; //TO DO!!! add http:// as prefix if there isnt
+  }
+
   console.log("longURL : ", longURL);
+
   const shorturl = generateRandomString();  // generates a random string to be used as the id in the db
   console.log("random generated string : ", shorturl);
   console.log("type of shorturl: ",typeof shorturl);
   console.log("existing DB : ", urlDatabase);
+
   urlDatabase[shorturl] = longURL;
 
-  // Build a new url object!
-  //const newUrl = {
-  // [`${shorturl}`]: longURL
-  //};
   console.log("UPDATED DB : ", urlDatabase);
 
-
-
-  //res.send("Ok"); // Respond with 'Ok' (we will replace this)
-  
-  
-  res.redirect(`/urls/${shorturl}`);// redirect to 'urls/$(id) ----> this is the shorturl/random string
-  // generate shortURL 
-  // add it to the database
-  // server responds by doing a redirect using the shortversion - > 302 will be found
-  //browser receieves 302 response from server
-  // browser requests url provided in the location response header
-  // gets /urls/shorturl
-  // server app gets ('urls/:id).. res.render (urls_show,templatevars)
-  //server looks up the longurl from db passes the id and longurl to the template, generates htm to send to browser
-  //browsers renders html form received from the server
+  res.redirect(`/urls/${shorturl}`);// redirect to 'urls/$(id) ----> for the new url added
 });
-
-
-
-
 
 /**
  * GET /urls/:id  Shows the shortUrl and longUrl of a specific url on a web browser
@@ -141,10 +133,16 @@ app.post("/urls", (req, res) => {
 app.get("/urls/:id", (req, res) => {
   const id = req.params.id;  // extract the id from the url
   const longUrl = urlDatabase[id];  // extract the longURL based on the id extracted
-  
+
   const templateVars = { id: id, longURL: longUrl};
   res.render("urls_show", templateVars);
-  
+
+});
+
+app.get("/u/:id", (req, res) => {
+  const id = req.params.id;  // extract the id from the url
+  const longUrl = urlDatabase[id];  // extract the longURL based on the id
+  res.redirect(longUrl);
 });
 
 
