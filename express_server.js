@@ -58,6 +58,22 @@ app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>");
 });
 
+/**
+ * POST /login   Sets cookie username and redirects to  /urls page
+ */
+app.get('/login', (req, res) => {
+  const cookies = req.cookies;
+  const username = cookies.username;
+});
+
+app.post("/login", (req, res) => {
+  const body = req.body;
+  const username = body.username;
+  console.log("username : ", username);
+    res.cookie("username", username);
+  res.redirect(`/urls`);
+});
+
 //app.get("/set", (req, res) => {
 //  const a = 1;
 //  res.send(`a = ${a}`);
@@ -126,6 +142,9 @@ app.post("/urls", (req, res) => {
 
   res.redirect(`/urls/${shorturl}`);// redirect to 'urls/$(id) ----> for the new url added
 });
+
+
+
 
 /**
  * GET /urls/:id  Shows the shortUrl and longUrl of a specific url on a web browser
