@@ -27,14 +27,25 @@ app.get("/set", (req, res) => {
   const a = 1;
   res.send(`a = ${a}`);
  });
- 
- app.get("/fetch", (req, res) => {
+
+app.get("/fetch", (req, res) => {
   res.send(`a = ${a}`);
  });
 
- app.get("/urls", (req, res) => {
+app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
+  console.log (urlDatabase);
+});
+
+app.get("/urls/:id", (req, res) => {
+  // extract the id from the url
+  const id = req.params.id
+  // extract the longURL based on the id extracted
+  const longUrl = urlDatabase[id]
+
+  const templateVars = { id: id, longURL: longUrl /* What goes here? */ };
+  res.render("urls_show", templateVars);
 });
 
 app.listen(PORT, () => {
