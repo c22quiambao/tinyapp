@@ -145,5 +145,15 @@ app.get("/u/:id", (req, res) => {
   res.redirect(longUrl);
 });
 
+app.post("/urls/:id/delete", (req, res) => {
+  const id = req.params.id;  // extract the id from the url
+  const longUrl = urlDatabase[id];  // extract the longURL based on the id extracted
+
+  console.log("existing DB : ", urlDatabase);
+  delete urlDatabase[id];
+  console.log("updated DB : ", urlDatabase);
+  res.redirect('/urls');
+
+});
 
 
