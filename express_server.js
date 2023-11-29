@@ -2,6 +2,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 const express = require("express");
+const cookieParser = require('cookie-parser');
+const morgan = require('morgan');
 
 ////////////////////////////////////////////////////////////////////////////////// Set-up / Config
 ////////////////////////////////////////////////////////////////////////////////
@@ -14,6 +16,8 @@ app.set("view engine", "ejs");
 ////////////////////////////////////////////////////////////////////////////////
 
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(morgan('dev'));
 
 ////////////////////////////////////////////////////////////////////////////////// Listener
 ////////////////////////////////////////////////////////////////////////////////
@@ -58,14 +62,10 @@ app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>");
 });
 
+
 /**
  * POST /login   Sets cookie username and redirects to  /urls page
  */
-app.get('/login', (req, res) => {
-  const cookies = req.cookies;
-  const username = cookies.username;
-});
-
 app.post("/login", (req, res) => {
   const body = req.body;
   const username = body.username;
@@ -74,27 +74,14 @@ app.post("/login", (req, res) => {
   res.redirect(`/urls`);
 });
 
-//app.get("/set", (req, res) => {
-//  const a = 1;
-//  res.send(`a = ${a}`);
-//});
 
-//app.get("/fetch", (req, res) => {
-//  res.send(`a = ${a}`);
-//});
-
-/**
- * GET /urls.json   Shows json of urlDatabase
- */
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
 
 /**
  * GET /urls   Shows the list of urls in the urlDatabase on a web browser
  */
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = { urls: urlDatabase,
+    username: req.cookies["username"]};
   res.render("urls_index", templateVars);
 });
 
@@ -107,7 +94,8 @@ app.get("/urls", (req, res) => {
  * GET /urls/new    Shows the form for adding a new url to shorten on a web browser
  */
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = { username: req.cookies["username"]};
+  res.render("urls_new", templateVars);
 });
 
 /**
@@ -143,9 +131,6 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${shorturl}`);// redirect to 'urls/$(id) ----> for the new url added
 });
 
-
-
-
 /**
  * GET /urls/:id  Shows the shortUrl and longUrl of a specific url on a web browser
  */
@@ -153,7 +138,8 @@ app.get("/urls/:id", (req, res) => {
   const id = req.params.id;  // extract the id from the url
   const longUrl = urlDatabase[id];  // extract the longURL based on the id extracted
 
-  const templateVars = { id: id, longURL: longUrl};
+  const templateVars = { id: id, longURL: longUrl,
+    username: req.cookies["username"]};
   res.render("urls_show", templateVars);
 
 });
@@ -168,7 +154,8 @@ app.post("/urls/:id/edit", (req, res) => {
   const id = req.params.id;  // extract the id from the url
   const longUrl = urlDatabase[id];  // extract the longURL based on the id extracted
 
-  const templateVars = { id: id, longURL: longUrl};
+  const templateVars = { id: id, longURL: longUrl,
+    username: req.cookies["username"]};
   res.render("urls_show", templateVars);
 
 });
@@ -210,6 +197,22 @@ app.post("/urls/:id/delete", (req, res) => {
   console.log("updated DB : ", urlDatabase);
   res.redirect('/urls');
 
+});
+
+//app.get("/set", (req, res) => {
+//  const a = 1;
+//  res.send(`a = ${a}`);
+//});
+
+//app.get("/fetch", (req, res) => {
+//  res.send(`a = ${a}`);
+//});
+
+/**
+ * GET /urls.json   Shows json of urlDatabase
+ */
+app.get("/urls.json", (req, res) => {
+  res.json(urlDatabase);
 });
 
 
