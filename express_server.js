@@ -145,6 +145,43 @@ app.get("/u/:id", (req, res) => {
   res.redirect(longUrl);
 });
 
+app.post("/urls/:id/edit", (req, res) => {
+  const id = req.params.id;  // extract the id from the url
+  const longUrl = urlDatabase[id];  // extract the longURL based on the id extracted
+
+  const templateVars = { id: id, longURL: longUrl};
+  res.render("urls_show", templateVars);
+
+});
+
+app.post("/urls/:id/save", (req, res) => {
+  const id = req.params.id;  // extract the id from the url
+
+  console.log("info recieved from browser : ",req.body);
+  const body = req.body; //stores request body response from the form
+
+  //check if the longURL has http:// included
+  let search1 = body.longURL.search("http://");
+  let search2 = body.longURL.search("https://");
+  console.log(search1);
+  console.log(search2);
+
+  let longURL = body.longURL;
+
+  if (search1 === -1 && search2 ===-1 ){
+    longURL = `https://${body.longURL}`; //TO DO!!! add http:// as prefix if there isnt
+  }
+
+  console.log("longURL : ", longURL);
+  console.log("existing DB : ", urlDatabase);
+
+  urlDatabase[id] = longURL;
+
+  console.log("updated DB : ", urlDatabase);
+  res.redirect('/urls');
+
+});
+
 app.post("/urls/:id/delete", (req, res) => {
   const id = req.params.id;  // extract the id from the url
   const longUrl = urlDatabase[id];  // extract the longURL based on the id extracted
