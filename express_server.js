@@ -199,6 +199,11 @@ app.post("/urls/:id/delete", (req, res) => {
 
 });
 
+app.post('/sign-out', (req, res) => {
+  res.clearCookie("username");
+  res.redirect('/urls');
+});
+
 //app.get("/set", (req, res) => {
 //  const a = 1;
 //  res.send(`a = ${a}`);
