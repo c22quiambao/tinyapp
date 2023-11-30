@@ -16,19 +16,24 @@
       <div class="navbar-nav">
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
-        <form class="form-inline" action="/login" method="POST">
-          <input
-            class="form-control"
-            type="text"
-            name="username"
-            placeholder="Username"
-            style="width: 300px; margin: 1em"
-          />
+        <% if(!username){ %>
+          <form class="form-inline" action="/login" method="POST">
+            <input
+              class="form-control"
+              type="text"
+              name="username"
+              placeholder="Username"
+              style="width: 300px; margin: 1em"
+            />
+            <button type="submit" class="btn btn-primary">Login</button>
+          </form>
+        <% } else{ %>
           
-          <button type="submit" class="btn btn-primary">Login</button>
-          <p><%= username %></p>
-        </form>
-
+          <form class="form-inline" action="/sign-out" method="POST">
+            <h2 style = "text-align: right">Logged In as : <%= username %> !</h2>
+            <button type="submit" class="btn btn-primary">Logout</button>
+          </form>
+       <% } %>
       </div>
     </div>
   </nav>
