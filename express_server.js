@@ -40,7 +40,29 @@ const generateRandomString = function() {
   return randomString.substring(2,8);
 };
 
-////////////////////////////////////////////////////////////////////////////////// Database
+const getUserByEmail = function(email){
+  const usersKeys = Object.keys(users);
+  const inputEmail = email;
+  console.log(usersKeys);
+  for(let element of usersKeys){
+    console.log("inputEmail", inputEmail);
+    console.log("current element reading", element);
+    const a = users[element];
+      console.log("a ------>", a);
+    const myJSON = JSON.stringify(a);
+    console.log("a ------>", myJSON);
+    console.log("type of myJSON --->",typeof myJSON);
+    const result = myJSON.includes(inputEmail);
+    console.log("result ------>", result);
+    console.log("type of result --->",typeof result);
+    if (result){
+      return true;
+    }
+  }
+    return false;
+};
+
+////////////////////////////////////////////////////////////////////////////////// Database Objects
 ////////////////////////////////////////////////////////////////////////////////
 
 const urlDatabase = {
@@ -48,28 +70,92 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey!",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher$funk",
+  },
+  user3RandomID: {
+    id: "user3RandomID",
+    email: "cq01@example.com",
+    password: "abc123",
+  }
+};
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // Routes
 ////////////////////////////////////////////////////////////////////////////////
+// GET /hello       Shows a hello test output.
+app.get("/", (req, res) => {
+  res.send("Hello!");
+});
+
+
+/*************
+ *** GET  & POST for new user registration
+ ************/
 
 /******
- * POST /register      Sets cookie username and redirects to  /urls page
+ * GET /register      Sets cookie username and redirects to  /urls page
  ******/
 app.get("/register", (req, res) => {
-  const username = req.params.username;
+  const email = req.params.email;
   const password = req.params.password;
-  const templateVars = {username,password};
+  const templateVars = {email,password};
   res.render("registration", templateVars);
-
-
-
-
-  //const body = req.body;
- // const username = body.username;
-  //console.log("username : ", username);
-  //  res.cookie("username", username);
- // res.redirect(`/urls`);
 });
+
+/******
+ * POST /register     Handles the submission of the registration form data
+ ******/
+app.post("/register", (req, res) => {
+  const body = req.body;
+        console.log("body : ", body);
+  const email = body.email;
+  const password = body.password;
+        console.log("email : ", email);
+        console.log("Type of email",typeof email);
+        console.log("password : ", password);
+        console.log("Type of password",typeof password);
+
+   // check if email and password field is empty
+  if(email === '' || password === '' ){
+    console.log("inside if checking for null!!!!!!");
+    res.status(400).end('<p>erroooooooorrrr!</p>');
+  } else {
+      const existingEmail = getUserByEmail(email);
+
+      // check return value of function existingEmail
+    if(existingEmail){
+      res.status(400).end('<p>erroooooooorrrr!</p>');
+    } else {
+      const user_id = generateRandomString();  // generates a random string to be used as the userid in the db
+                  console.log("random generated string : ", user_id);
+                  console.log("type of user_id: ",typeof user_id);
+                  console.log("existing DB : ", users);
+      res.cookie("user_id", user_id);
+
+      // create new user object and add to users database
+      users[user_id] = {
+        id:user_id,
+        email:email,
+        password:password
+      }
+      console.log("UPDATED users DB : ", users);
+      // redirect to urls page
+      res.redirect(`/urls`);// redirect to 'urls
+      }
+  }
+});
+
 
 /******
  * POST /login      Sets cookie username and redirects to  /urls page
@@ -77,46 +163,58 @@ app.get("/register", (req, res) => {
 app.post("/login", (req, res) => {
   const body = req.body;
   const username = body.username;
-  console.log("username : ", username);
-    res.cookie("username", username);
+  console.log("username : ", username); // TO DO UPDATE DONT USE USERNAME
+    res.cookie("username", username); // TO DO UPDATE DONT USE USERNAME
   res.redirect(`/urls`);
 });
 
 /******
- * POST /sign-out  Handles Signing out of app and clearing cookies
+ * POST /sign-out     Handles Signing out of app and clearing cookies
  ******/
 
 app.post('/sign-out', (req, res) => {
-  res.clearCookie("username");
-  res.redirect('/urls');
+  res.clearCookie("user_id");  // TO DO UPDATE DONT USE USERNAME
+  res.redirect('/register');
 });
 
 
 
 /******
- * GET /urls        Shows the list of urls in the urlDatabase on a web browser
+ * GET /urls      Shows the list of urls in the urlDatabase on a web browser
  ******/
 app.get("/urls", (req, res) => {
+  //look up specific user from users based on user_id
+  //create an array of the keys in the object users
+  const user_id = req.cookies["user_id"];
+  const foundUser = users[user_id];
+  console.log("foundUser---->", foundUser);
+  
+  console.log("user id in memory", user_id);
   const templateVars = { urls: urlDatabase,
-    username: req.cookies["username"]};
-  res.render("urls_index", templateVars);
+        user_id: user_id, foundUser: foundUser};
+      res.render("urls_index", templateVars);
+     
+    
+
+
 });
 
-/******
- * GET /urls/new    Shows the form for adding a new url to shorten on a web browser
- * POST /urls       Handles submission of new url form
- ******/
+/*************
+ *** GET  & POST for new urls 
+ ************/
 
 /******
- * GET /urls/new    Shows the form for adding a new url to shorten on a web browser
+ * GET /urls/new      Shows the form for adding a new url to shorten on a web browser
  ******/
 app.get("/urls/new", (req, res) => {
-  const templateVars = { username: req.cookies["username"]};
+  const user_id = req.cookies["user_id"];
+  const foundUser = users[user_id];
+  const templateVars = {foundUser: foundUser};
   res.render("urls_new", templateVars);
 });
 
 /******
- * POST /urls       Handles submission/saving of new url form
+ * POST /urls     Handles submission/saving of new url form
  ******/
 app.post("/urls", (req, res) => {
   console.log("info recieved from browser : ",req.body); // Log the POST request body to the console. The body sends back i.e: { longURL: 'google.com' }
@@ -149,20 +247,21 @@ app.post("/urls", (req, res) => {
 });
 
 /******
- * GET /urls/:id  Shows the shortUrl and longUrl of a specific url on a web browser
+ * GET /urls/:id      Shows the shortUrl and longUrl of a specific url on a web browser
  ******/
 app.get("/urls/:id", (req, res) => {
   const id = req.params.id;  // extract the id from the url
   const longUrl = urlDatabase[id];  // extract the longURL based on the id extracted
-
+  const user_id = req.cookies["user_id"];
+  const foundUser = users[user_id];
   const templateVars = { id: id, longURL: longUrl,
-    username: req.cookies["username"]};
+    foundUser: foundUser};
   res.render("urls_show", templateVars);
 
 });
 
 /******
- * GET /u/:id  Redirects the user to the longURL of the ShortURL selected
+ * GET /u/:id     Redirects the user to the longURL of the ShortURL selected
  ******/
 
 app.get("/u/:id", (req, res) => {
@@ -172,20 +271,21 @@ app.get("/u/:id", (req, res) => {
 });
 
 /******
- * POST /urls/:id/edit  Handles submission of edited url data
+ * POST /urls/:id/edit      Handles submission of edited url data
  ******/
 app.post("/urls/:id/edit", (req, res) => {
   const id = req.params.id;  // extract the id from the url
   const longUrl = urlDatabase[id];  // extract the longURL based on the id extracted
-
+  const user_id = req.cookies["user_id"];
+  const foundUser = users[user_id];
   const templateVars = { id: id, longURL: longUrl,
-    username: req.cookies["username"]};
+    foundUser: foundUser};
   res.render("urls_show", templateVars);
 
 });
 
 /******
- * POST /urls/:id/save  Handles submission of saved edited url data
+ * POST /urls/:id/save      Handles submission of saved edited url data
  ******/
 
 app.post("/urls/:id/save", (req, res) => {
@@ -217,7 +317,7 @@ app.post("/urls/:id/save", (req, res) => {
 });
 
 /******
- * POST /urls/:id/delete  Handles submission of deleted url data
+ * POST /urls/:id/delete      Handles submission of deleted url data
  ******/
 app.post("/urls/:id/delete", (req, res) => {
   const id = req.params.id;  // extract the id from the url
