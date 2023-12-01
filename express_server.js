@@ -4,6 +4,7 @@
 const express = require("express");
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
+const e = require("express");
 
 ////////////////////////////////////////////////////////////////////////////////// Set-up / Config
 ////////////////////////////////////////////////////////////////////////////////
@@ -41,27 +42,19 @@ const generateRandomString = function() {
 };
 
 const getUserByEmail = function(email){
-  const usersKeys = Object.keys(users);
-  const inputEmail = email;
-  console.log(usersKeys);
-  for(let element of usersKeys){
-    console.log("inputEmail", inputEmail);
-    console.log("current element reading", element);
-    const a = users[element];
-      console.log("a ------>", a);
-    const myJSON = JSON.stringify(a);
-    console.log("a ------>", myJSON);
-    console.log("type of myJSON --->",typeof myJSON);
-    const result = myJSON.includes(inputEmail);
-    console.log("result ------>", result);
-    console.log("type of result --->",typeof result);
-    if (result){
-      return true;
+  console.log("function getUserByEmail CALLED!!!!!!");
+  const usersArray = Object.values(users);
+  console.log("usersArray -----> ", usersArray);
+
+  for  (const user of usersArray){
+    if (user.email === email){
+      console.log("user to be returned------>", user)
+      return user;
     }
   }
-    return false;
+  return null;
 };
-
+  
 ////////////////////////////////////////////////////////////////////////////////// Database Objects
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -84,7 +77,7 @@ const users = {
   },
   user3RandomID: {
     id: "user3RandomID",
-    email: "cq01@example.com",
+    email: "test@test.com",
     password: "abc123",
   }
 };
@@ -104,13 +97,13 @@ app.get("/", (req, res) => {
  ************/
 
 /******
- * GET /register      Sets cookie username and redirects to  /urls page
+ * GET /register      Shows registration page
  ******/
 app.get("/register", (req, res) => {
   const email = req.params.email;
   const password = req.params.password;
   const templateVars = {email,password};
-  res.render("registration", templateVars);
+  res.render("registration", templateVars)
 });
 
 /******
@@ -118,25 +111,29 @@ app.get("/register", (req, res) => {
  ******/
 app.post("/register", (req, res) => {
   const body = req.body;
-        console.log("body : ", body);
+//        console.log("body : ", body);
   const email = body.email;
   const password = body.password;
-        console.log("email : ", email);
-        console.log("Type of email",typeof email);
-        console.log("password : ", password);
-        console.log("Type of password",typeof password);
+//        console.log("email : ", email);
+//        console.log("Type of email",typeof email);
+//        console.log("password : ", password);
+//        console.log("Type of password",typeof password);
 
    // check if email and password field is empty
   if(email === '' || password === '' ){
-    console.log("inside if checking for null!!!!!!");
-    res.status(400).end('<p>erroooooooorrrr!</p>');
+ //   console.log("inside if checking for null!!!!!!");
+ console.log("empty username or pw");
+    res.status(400).end('<p>Email and Password cannot be empty.</p>');
   } else {
-      const existingEmail = getUserByEmail(email);
+      const foundUser = getUserByEmail(email);
 
       // check return value of function existingEmail
-    if(existingEmail){
-      res.status(400).end('<p>erroooooooorrrr!</p>');
-    } else {
+      if (foundUser){
+        res.status(400).end('User is already registered!');
+        console.log("user exists");
+        res.redirect(`/register`)
+        return;
+      } else {
       const user_id = generateRandomString();  // generates a random string to be used as the userid in the db
                   console.log("random generated string : ", user_id);
                   console.log("type of user_id: ",typeof user_id);
@@ -156,25 +153,63 @@ app.post("/register", (req, res) => {
   }
 });
 
+/******
+ * GET /login      Shows login page
+ ******/
+app.get("/login", (req, res) => {
+  const email = req.params.email;
+  const password = req.params.password;
+  const templateVars = {email,password};
+  res.render("login",templateVars);
+});
+
+
 
 /******
- * POST /login      Sets cookie username and redirects to  /urls page
+ * POST /login      Performs POST login functionality for validity
  ******/
 app.post("/login", (req, res) => {
+  console.log("INSIDE POST LOGIN");
   const body = req.body;
-  const username = body.username;
-  console.log("username : ", username); // TO DO UPDATE DONT USE USERNAME
-    res.cookie("username", username); // TO DO UPDATE DONT USE USERNAME
-  res.redirect(`/urls`);
+  console.log("body!!!!---->>>> ", body);
+  const email = body.email;
+  const password = body.password
+  console.log("email : ", email);
+  console.log("password : ", password);
+  const foundUser = getUserByEmail(email);
+
+  if (!foundUser){
+    res.status(403).end('User is not yet registered.');
+    console.log("user does not exists");
+    res.redirect(`/register`)
+    return;
+  }
+
+  console.log("founduser in memory ----->", foundUser)
+  console.log("typeof founduser in memory ----->", typeof foundUser)
+
+  if (password === foundUser["password"] ){
+    const user_id = foundUser["id"]
+    console.log("user_id in memory ----->", user_id)
+    //const email = foundUser[email];
+        //console.log("founduser in memory ----->", foundUser[email])
+    res.cookie("user_id", user_id);
+    res.redirect(`/urls`);
+  }else{
+    res.status(403).end('Username or Password is incorrect!');
+    console.log("wrong pw or un");
+    res.redirect(`/login`)
+    return;
+  }
 });
 
 /******
  * POST /sign-out     Handles Signing out of app and clearing cookies
  ******/
 
-app.post('/sign-out', (req, res) => {
-  res.clearCookie("user_id");  // TO DO UPDATE DONT USE USERNAME
-  res.redirect('/register');
+app.post('/logout', (req, res) => {
+  res.clearCookie("user_id");
+  res.redirect('/login');
 });
 
 
@@ -183,20 +218,14 @@ app.post('/sign-out', (req, res) => {
  * GET /urls      Shows the list of urls in the urlDatabase on a web browser
  ******/
 app.get("/urls", (req, res) => {
-  //look up specific user from users based on user_id
-  //create an array of the keys in the object users
-  const user_id = req.cookies["user_id"];
+  const user_id = req.cookies["user_id"]
   const foundUser = users[user_id];
-  console.log("foundUser---->", foundUser);
-  
   console.log("user id in memory", user_id);
+  console.log("foundUser---->", foundUser);
+
   const templateVars = { urls: urlDatabase,
         user_id: user_id, foundUser: foundUser};
       res.render("urls_index", templateVars);
-     
-    
-
-
 });
 
 /*************
