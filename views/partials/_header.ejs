@@ -16,8 +16,9 @@
       <div class="navbar-nav">
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
-        <% if(!username){ %>
+        <% if(!foundUser.email){ %>
           <form class="form-inline" action="/login" method="POST">
+            <h2 style = "text-align: right">no user id received</h2>
             <input
               class="form-control"
               type="text"
@@ -28,9 +29,8 @@
             <button type="submit" class="btn btn-primary">Login</button>
           </form>
         <% } else{ %>
-          
+          <h2 style = "text-align: right">Logged In as : <%= foundUser.email %> !</h2>          
           <form class="form-inline" action="/sign-out" method="POST">
-            <h2 style = "text-align: right">Logged In as : <%= username %> !</h2>
             <button type="submit" class="btn btn-primary">Logout</button>
           </form>
        <% } %>
