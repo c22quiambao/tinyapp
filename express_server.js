@@ -2,7 +2,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 const express = require("express");
-const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session');
 const morgan = require('morgan');
 const bcrypt = require("bcryptjs");
 
@@ -17,7 +17,12 @@ app.set("view engine", "ejs");
 ////////////////////////////////////////////////////////////////////////////////
 
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['cai01', 'jq12'],
+  // Cookie Options
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}));
 app.use(morgan());
 
 ////////////////////////////////////////////////////////////////////////////////// Listener
@@ -43,47 +48,51 @@ const generateRandomString = function() {
 
 const getUserByEmail = function(email) {
   const usersArray = Object.values(users);
-  console.log("usersArray --->", usersArray);
   for  (const user of usersArray) {
     if (user.email === email) {
-      console.log("user --->", user);
       return user;
     }
   }
   return null;
 };
 
-const urlsForUser = function(userID) {
+const urlsForUser = function(user) {
   let newObj = {};
   const keysOfObj = Object.keys(urlDatabase);
 
   for (let element of keysOfObj) {
-    if (userID === urlDatabase[element].userID) {
+    if (user === urlDatabase[element].userID) {
       const longURL = urlDatabase[element].longURL;
-      newObj[element] = {longURL};
+      const date = urlDatabase[element].created;
+      newObj[element] = {longURL, userID : user, created: date};
     }
   }
   return newObj;
 };
+
 ////////////////////////////////////////////////////////////////////////////////// Database Objects
 ////////////////////////////////////////////////////////////////////////////////
 
 const urlDatabase = {
   "b2xVn2": {
     longURL : "http://www.lighthouselabs.ca",
-    userID : "userRandomID"
+    userID : "userRandomID",
+    created: "2023-12-01"
   },
   "9sm5xK": {
     longURL : "http://www.google.com",
-    userID : "userRandomID"
+    userID : "userRandomID",
+    created: "2023-12-01"
   },
   "8sm1xk": {
     longURL : "http://www.instagram.com",
-    userID : "kikx01"
+    userID : "kikx01",
+    created: "2023-11-30"
   },
   "7jmvQk": {
     longURL : "https://en.wikipedia.org/wiki/Main_Page",
-    userID : "kikx01"
+    userID : "kikx01",
+    created: "2023-11-29"
   }
 };
 
@@ -115,10 +124,8 @@ const users = {
 * GET /       Main redirection of app initial visit
 *************/
 app.get("/", (req, res) => {
-  const user_id = req.cookies.user_id;
-
-  // check if user is logged in or not then redirect or render page
-  if (user_id) {
+  // check if user is already logged in or not then redirect or render page
+  if (req.session.user_id) {
     res.redirect(`/urls`);
   } else {
     res.redirect(`/login`);
@@ -129,14 +136,12 @@ app.get("/", (req, res) => {
 * GET /urls      Shows the list of urls in the urlDatabase on a web browser
 *************/
 app.get("/urls", (req, res) => {
-  const user_id = req.cookies.user_id;
-
   // check if user is logged in or not then redirect or render page
-  if (!user_id) {
+  if (!req.session.user_id) {
     res.status(400).send('<h3>You have to be logged in to see this page.</h3>');
     return;
   }
-
+  const user_id = req.session.user_id;
   // retrieve id of logged in user from users db using cookie stored
   const foundUser = users[user_id];
 
@@ -158,12 +163,12 @@ app.get("/urls", (req, res) => {
 * GET /urls/new      Shows the form for adding a new url to shorten on a web browser
 *************/
 app.get("/urls/new", (req, res) => {
-  const user_id = req.cookies.user_id;
-
   // check if user is logged in or not then redirect or render page
-  if (!user_id) {
+  if (!req.session.user_id) {
     res.redirect(`/login`);
   }
+
+  const user_id = req.session.user_id;
 
   // render page
   const foundUser = users[user_id];
@@ -175,14 +180,15 @@ app.get("/urls/new", (req, res) => {
  * GET /urls/:id      Shows the shortURL and longURL of a specific url on a web browser
  ******/
 app.get("/urls/:id", (req, res) => {
-  const user_id = req.cookies["user_id"];
   const id = req.params.id;
 
   // check if user is logged in
-  if (!user_id) {
+  if (!req.session.user_id) {
     res.status(400).send('<h3>You have to be logged in to see this page.</h3>');
     return;
   }
+
+  const user_id = req.session.user_id;
 
   // check if short URL exists in db
   if (!urlDatabase.hasOwnProperty(id)) {
@@ -227,13 +233,15 @@ app.get("/u/:id", (req, res) => {
  * POST /urls     Handles submission/saving of new url form
  ******/
 app.post("/urls", (req, res) => {
-  const user_id = req.cookies.user_id;
-
+  const today = new Date().toJSON().slice(0, 10);
+  
   // check if user is logged in or not then redirect or render page
-  if (!user_id) {
+  if (!req.session.user_id) {
     res.status(400).send('<h3>You have no permission to access this page.</h3>');
     return;
   }
+
+  const user_id = req.session.user_id;
 
   //check if the longURL has http:// included
   let longURL = req.body.longURL;
@@ -247,7 +255,7 @@ app.post("/urls", (req, res) => {
   const shortURL = generateRandomString();
 
   // store data in db
-  urlDatabase[shortURL] = {longURL, userID : user_id};
+  urlDatabase[shortURL] = {longURL, userID : user_id, created: today};
 
   // redirect to 'urls/$(id) ----> for the new url added
   res.redirect(`/urls/${shortURL}`);
@@ -258,14 +266,15 @@ app.post("/urls", (req, res) => {
  ******/
 app.post("/urls/:id", (req, res) => {
   const id = req.params.id;
-  const user_id = req.cookies.user_id;
   const longURL = req.body.longURL;
 
   // check if user is logged in
-  if (!user_id) {
+  if (!req.session.user_id) {
     res.status(400).send('<h3>You have to be logged in to see this page.</h3>');
     return;
   }
+
+  const user_id = req.session.user_id;
 
   // check if user logged in does not own the URL
   const newUrlDatabase = urlsForUser(user_id);
@@ -287,13 +296,14 @@ app.post("/urls/:id", (req, res) => {
  ******/
 app.post("/urls/:id/delete", (req, res) => {
   const id = req.params.id;
-  const user_id = req.cookies.user_id;
 
   // check if user is logged in
-  if (!user_id) {
+  if (!req.session.user_id) {
     res.status(400).send("You should login to perform this action.");
     return;
   }
+
+  const user_id = req.session.user_id;
 
   // check if user logged in does not own the URL
   const newUrlDatabase = urlsForUser(user_id);
@@ -314,10 +324,8 @@ app.post("/urls/:id/delete", (req, res) => {
 ** GET /login      Shows login page
 *************/
 app.get("/login", (req, res) => {
-  const user_id = req.cookies.user_id;
-
-  // check if user is logged in for redirection
-  if (user_id) {
+  // check if user is logged in or not, then either render or redirect
+  if (req.session.user_id) {
     res.redirect(`/urls`);
     return;
   }
@@ -330,10 +338,8 @@ app.get("/login", (req, res) => {
 * GET /register      Shows registration page
 *************/
 app.get("/register", (req, res) => {
-  const user_id = req.cookies.user_id;
-
   // check if user is logged in for redirection
-  if (user_id) {
+  if (req.session.user_id) {
     res.redirect(`/urls`);
     return;
   }
@@ -349,7 +355,6 @@ app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
   const foundUser = getUserByEmail(email);
-  console.log("found user------>", foundUser);
 
   // check for existings users
   if (!foundUser) {
@@ -366,7 +371,8 @@ app.post("/login", (req, res) => {
 
   // proceed with login, set cookie and then redirect
   const user_id = foundUser.id;
-  res.cookie("user_id", user_id);
+  //res.cookie("user_id", user_id); //check if I  need to remove
+  req.session.user_id = user_id;
   res.redirect(`/urls`);
 });
 
@@ -404,10 +410,8 @@ app.post("/register", (req, res) => {
   console.log("new users object created --- > ",users[id]);
   console.log("new users object created --- > ",users);
 
-  // TO DO ENCRYPT NEW PASSWORD
-
   // set generated id as session cookie
-  res.cookie("user_id", id);
+   req.session.user_id = id;
 
   // redirect
   res.redirect(`/urls`);
@@ -417,6 +421,7 @@ app.post("/register", (req, res) => {
 * POST /logout     Handles Signing out of app and clearing cookies
 *************/
 app.post('/logout', (req, res) => {
-  res.clearCookie("user_id");
+  //res.clearCookie("user_id");
+  req.session = null;
   res.redirect('/login');
 });
