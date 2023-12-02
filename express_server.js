@@ -4,6 +4,7 @@
 const express = require("express");
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
+const bcrypt = require("bcryptjs");
 
 ////////////////////////////////////////////////////////////////////////////////// Set-up / Config
 ////////////////////////////////////////////////////////////////////////////////
@@ -91,17 +92,17 @@ const users = {
   userRandomID: {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple-monkey!",
+    password: "$2a$10$M5BOaEBkb0Xdyre4jobtruLNKQZl2SAQdfetlYsRWvovb4Nts8f.6",               //test01
   },
   user2RandomID: {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "dishwasher$funk",
+    password: "$2a$10$btlimy8GOtYAZCZcB0A1luLL7eMuoJzt.dBgnJbG13iKOSDAfWrBK",               //123qwe
   },
   kikx01: {
     id: "kikx01",
     email: "test@test.com",
-    password: "abc123",
+    password: "$2a$10$lApJr9zllsXIHxJ2en65S.ZKC0T/mTAm6BFFMEUCnwSek6fG0fh9e",               //abc123
   }
 };
 
@@ -201,6 +202,7 @@ app.get("/urls/:id", (req, res) => {
   const foundUser = users[user_id];
   const templateVars = {id, urls, foundUser};
 
+  // render page
   res.render("urls_show", templateVars);
 });
 
@@ -217,6 +219,7 @@ app.get("/u/:id", (req, res) => {
     return;
   }
 
+  // render page
   res.redirect(longURl);
 });
 
@@ -240,12 +243,14 @@ app.post("/urls", (req, res) => {
   if (search1 === -1 && search2 === -1) {
     longURL = `https://${longURL}`;
   }
+  // generates a random string to be used as the id in the db
+  const shortURL = generateRandomString();
 
-  const shortURL = generateRandomString();  // generates a random string to be used as the id in the db
-
+  // store data in db
   urlDatabase[shortURL] = {longURL, userID : user_id};
 
-  res.redirect(`/urls/${shortURL}`);// redirect to 'urls/$(id) ----> for the new url added
+  // redirect to 'urls/$(id) ----> for the new url added
+  res.redirect(`/urls/${shortURL}`);
 });
 
 /******
@@ -272,6 +277,8 @@ app.post("/urls/:id", (req, res) => {
 
   // update longURL
   urlDatabase[id].longURL = longURL;
+
+  // redirect
   res.redirect(`/urls`);
 });
 
@@ -299,6 +306,7 @@ app.post("/urls/:id/delete", (req, res) => {
   // delete data from db
   delete urlDatabase[id];
 
+  // redirect
   res.redirect('/urls');
 });
 
@@ -341,6 +349,7 @@ app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
   const foundUser = getUserByEmail(email);
+  console.log("found user------>", foundUser);
 
   // check for existings users
   if (!foundUser) {
@@ -349,7 +358,8 @@ app.post("/login", (req, res) => {
   }
 
   // check password is invalid
-  if (password !== foundUser.password) {
+
+  if (!bcrypt.compareSync(password,foundUser.password,)) {
     res.status(403).send('<h3>Password or Email is incorrect. Please try again.</h3>');
     return;
   }
@@ -366,6 +376,7 @@ app.post("/login", (req, res) => {
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+  const hashedPassword = bcrypt.hashSync(password, 10);
 
   // check if email and password field is empty
   if (!email || !password) {
@@ -385,10 +396,14 @@ app.post("/register", (req, res) => {
   const id = generateRandomString();
 
   // create new user object and add to users database
-  users[id] = {id,email, password};
+  users[id] = {
+    id: id,
+    email: email,
+    password : hashedPassword
+  };
   console.log("new users object created --- > ",users[id]);
+  console.log("new users object created --- > ",users);
 
-  // create new user object and add to users database
   // TO DO ENCRYPT NEW PASSWORD
 
   // set generated id as session cookie
