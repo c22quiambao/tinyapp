@@ -17,25 +17,40 @@
     <div class="card text-center">
       <div class="card-header"></div>
       <div class="card-body">
-        <h5 class="card-title">TinyURL for: <%= longURL %></h5>
-        <p class="card-text">
-          Short URL ID: <a href="/u/<%= id %>"><%= id %></a>
-        </p>
+        <h5 class="card-title">TinyURL for: <%= urls[id].longURL %></h5>
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Short URL ID</th>
+              <th scope="col">Created Date</th>
+              <th scope="col">No. of Visits</th>
+              <th scope="col">No. of Unique Visits</th>
+            </tr>
+          </thead>
+          <tbody>
+              <tr>
+                <td><a href="/u/<%= id %>"><%= id %></a></td>
+                <td>Creation Date</td>
+                <td>No of Visits</td>
+                <td>Unique visits</td>
+                </tr>
+          </tbody>
+        </table>
       </div>
       <div class="card align-items-center">
         <div class="card-body">
         <h3 class="card-title">Edit</h3>
-          <form class="form-inline" action="/urls/<%= id %>/save" method="POST" >
-            <label class="form-check-input" for="longURL">New URL: </label>
+          <form class="form-inline" action="/urls/<%= id %>" method="POST" >
+            <label class="form-check-input" for="longURL">Long URL: </label>
             <input
               class="form-check-input"
               type="text"
               name="longURL"
-              value="<%= longURL %>"
+              value="<%= urls[id].longURL %>"
               style="width: 300px"
             />
             <button type="submit" class="btn btn-primary">
-              Submit
+              Update
             </button>
           </form></div>
       </div>
