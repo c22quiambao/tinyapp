@@ -5,6 +5,7 @@ const express = require("express");
 const cookieSession = require('cookie-session');
 const morgan = require('morgan');
 const bcrypt = require("bcryptjs");
+const getUserByEmail = require('./helpers');
 
 ////////////////////////////////////////////////////////////////////////////////// Set-up / Config
 ////////////////////////////////////////////////////////////////////////////////
@@ -46,15 +47,7 @@ const generateRandomString = function() {
   return randomString.substring(2,8);
 };
 
-const getUserByEmail = function(email) {
-  const usersArray = Object.values(users);
-  for  (const user of usersArray) {
-    if (user.email === email) {
-      return user;
-    }
-  }
-  return null;
-};
+
 
 const urlsForUser = function(user) {
   let newObj = {};
@@ -354,7 +347,7 @@ app.get("/register", (req, res) => {
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-  const foundUser = getUserByEmail(email);
+  const foundUser = getUserByEmail(email,users);
 
   // check for existings users
   if (!foundUser) {
@@ -390,7 +383,7 @@ app.post("/register", (req, res) => {
     return;
   }
 
-  const foundUser = getUserByEmail(email);
+  const foundUser = getUserByEmail(email,users);
 
   // check for existing email
   if (foundUser) {
