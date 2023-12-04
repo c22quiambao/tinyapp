@@ -6,6 +6,8 @@ const cookieSession = require('cookie-session');
 const morgan = require('morgan');
 const bcrypt = require("bcryptjs");
 const getUserByEmail = require('./helpers');
+var methodOverride = require('method-override');
+
 
 ////////////////////////////////////////////////////////////////////////////////// Set-up / Config
 ////////////////////////////////////////////////////////////////////////////////
@@ -24,8 +26,8 @@ app.use(cookieSession({
   // Cookie Options
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
 }));
-app.use(morgan());
-
+app.use(morgan('dev'));
+app.use(methodOverride('_method'));
 ////////////////////////////////////////////////////////////////////////////////// Listener
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -223,11 +225,11 @@ app.get("/u/:id", (req, res) => {
 });
 
 /******
- * POST /urls     Handles submission/saving of new url form
+ * PUT /urls     Handles submission of new url form
  ******/
-app.post("/urls", (req, res) => {
+app.put("/urls", (req, res) => {
   const today = new Date().toJSON().slice(0, 10);
-  
+
   // check if user is logged in or not then redirect or render page
   if (!req.session.user_id) {
     res.status(400).send('<h3>You have no permission to access this page.</h3>');
@@ -255,9 +257,9 @@ app.post("/urls", (req, res) => {
 });
 
 /******
- * POST /urls/:id      Handles submission of edited url data
+ * PUT /urls/:id      Handles submission of edited url data
  ******/
-app.post("/urls/:id", (req, res) => {
+app.put("/urls/:id", (req, res) => {
   const id = req.params.id;
   const longURL = req.body.longURL;
 
@@ -285,22 +287,19 @@ app.post("/urls/:id", (req, res) => {
 });
 
 /******
- * POST /urls/:id/delete      Handles submission of deleted url data
+ * DELETE /urls/:id      Handles submission of deleted url data
  ******/
-app.post("/urls/:id/delete", (req, res) => {
+app.delete("/urls/:id", (req, res) => {
   const id = req.params.id;
-
   // check if user is logged in
   if (!req.session.user_id) {
     res.status(400).send("You should login to perform this action.");
     return;
   }
-
   const user_id = req.session.user_id;
 
   // check if user logged in does not own the URL
   const newUrlDatabase = urlsForUser(user_id);
-
   if (!newUrlDatabase.hasOwnProperty(id)) {
     res.status(400).send('<h3>You have no permission to access this page.</h3>');
     return;
@@ -370,9 +369,9 @@ app.post("/login", (req, res) => {
 });
 
 /*************
-* POST /register     Handles the submission of the registration form data
+* PUT /register     Handles the registration of new user data
 *************/
-app.post("/register", (req, res) => {
+app.put("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
   const hashedPassword = bcrypt.hashSync(password, 10);
